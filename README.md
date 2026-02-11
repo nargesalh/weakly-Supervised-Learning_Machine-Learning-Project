@@ -1,120 +1,274 @@
-Glossary Extraction for Economic Texts using NLP
+# Weakly Supervised Glossary Extraction for the Economics Domain
 
-This project implements a complete NLP-based pipeline for automatic extraction of domain-specific glossary terms from economic texts.
-The goal is to identify meaningful economic concepts from raw text using representation learning, clustering, and semantic filtering, and to compare the proposed approach with a TF-IDF baseline.
+## Course: Machine Learning  
+**Instructor:** Dr. Pishgar  
 
-📌 Problem Description
+### Team Members
+- Narges Aliheydari  
+- Fatemeh Gheysari  
+- Alireza Farzaneh  
 
-Glossary extraction is an important task in Natural Language Processing with applications in education, information retrieval, and domain-specific knowledge construction.
-In this project, we focus on extracting economic terminology from textual corpora using machine learning techniques.
+---
 
-🧠 Method Overview
+# 1. Project Overview
 
-The proposed pipeline consists of the following steps:
+This project addresses the task of **automatic domain glossary extraction** from an unlabeled corpus in the Economics domain.
 
-Preprocessing
+Given raw domain-specific text, the objective is to extract and rank terms and phrases that represent important domain terminology.
 
-Tokenization and normalization of raw economic text
+The system is implemented in two structured development phases:
 
-Removal of invalid or noisy tokens
+- **Phase 1:** Baseline (TF-IDF + EDA + evaluation)
+- **Phase 2:** Improvements (Phrase extraction + Weak supervision + Hybrid ranking)
 
-Embedding Extraction
+Evaluation is performed against a reference glossary using Top-K metrics.
 
-Use of a pretrained Transformer-based model (DistilBERT) to generate contextual embeddings for tokens
+---
 
-The model is used strictly as a feature extractor (no text generation)
+# 2. Problem Definition
 
-Clustering
+The goal is to extract a ranked list of economic terms from a domain corpus without using labeled training data.
 
-Grouping semantically similar tokens into clusters based on embedding similarity
+This is treated as a **weakly supervised terminology extraction task**, where supervision is limited to:
 
-Semantic Filtering
+- A small list of economics seed words
+- A small list of general (non-domain) seed words
+- A reference gold glossary used only for evaluation
 
-Identification of economically relevant clusters using seed-based cosine similarity
+Output:
+```
+demo/outputs/final_terms.csv
+```
 
-Comparison between economic seed words and general-purpose seed words
+Evaluation metrics:
+- Precision@K
+- Recall@K
+- F1@K  
+for K ∈ {50, 100, 200}
 
-Tunable parameters to control the precision–coverage trade-off
+---
 
-Glossary Generation
+# 3. Dataset
 
-Extraction of candidate economic terms from selected clusters
+### Corpus
+`data/raw/economics_sample.txt`
 
-📊 Baseline Method
+Expanded domain text from economics sources.
 
-A TF-IDF-based baseline is implemented for comparison.
-This baseline extracts high-frequency terms without using semantic embeddings or clustering.
+### Gold Glossary
+`data/gold_glossary.csv`
 
-📈 Evaluation
+Contains 100 reference economics terms collected from Wikipedia.
 
-The extracted terms are evaluated against a manually curated gold glossary of economic terms using:
+---
 
-Precision@K
-
-Recall@K
-
-F1-score@K
-
-Evaluations are reported for multiple values of K (50, 100, 200).
-Light normalization is applied to reduce the effect of morphological and multi-word variations.
-
-🔍 Key Observations
-
-The TF-IDF baseline performs better on exact-match metrics due to lexical overlap with the gold glossary.
-
-The proposed embedding-based method extracts more semantically rich and domain-specific terms, including multi-word expressions.
-
-Increasing corpus size and tuning filtering parameters significantly improve coverage and stability.
-
-Results highlight the limitations of exact-match evaluation for glossary extraction tasks.
-
-🛠️ Project Structure
+# 4. Project Structure
+```
 glossex_final/
 │
+├── .git/
+├── .venv/
 ├── data/
-│   ├── raw/                 # Raw economic text corpus
-│   ├── processed/           # Preprocessed tokens, embeddings, clusters
-│   └── seeds/               # Economic and general seed word lists
+│   ├── raw/
+│   ├── processed/
+│   ├── seeds/
+│   └── gold_glossary.xlsx
 │
-├── src/glossex/
-│   ├── preprocess.py
-│   ├── embeddings.py
-│   ├── clustering.py
-│   └── filtering.py
+├── demo/
+│   ├── outputs/
+│   └── demo.ipynb
 │
-├── scripts/
-│   └── make_demo_outputs.py
+├── docs/
+│   └── phase-1-report.md
 │
 ├── evaluation/
-│   └── eval_topk.py
 │
-└── demo/outputs/
-    ├── final_terms.csv
-    └── tfidf_baseline_top_terms.csv
+├── notebooks/
+│   └── eda_exploration.ipynb
+│
+├── scripts/
+│
+├── src/
+│   ├── baselines/
+│   ├── evaluation/
+│   ├── glossex/
+│   └── utils/
+│
+├── README.md
+├── requirements.txt
+├── experiments.md
+├── LICENSE
+└── .gitignore
+```
 
-🚀 How to Run
 
-Activate virtual environment:
+### Core Modules
 
+| File | Description |
+|------|------------|
+| preprocess.py | Text preprocessing |
+| embeddings.py | Token embedding generation |
+| clustering.py | Initial clustering pipeline |
+| tfidf_baseline.py | TF-IDF baseline |
+| phrases.py | Phrase extraction (bigrams & trigrams) |
+| rank_phrases.py | Seed-guided semantic ranking |
+| hybrid_rank.py | Hybrid TF-IDF + embedding scoring |
+| eval_topk.py | Multi-K evaluation |
+
+---
+
+# 5. Phase 1 — Baseline
+
+Phase 1 includes:
+
+- Data preprocessing
+- Exploratory Data Analysis (EDA)
+- TF-IDF ranking baseline
+- Evaluation using Top-K metrics
+
+### Baseline Result (@K = 50)
+
+| K | Precision | Recall | F1 |
+|---|-----------|--------|----|
+| 50 | 0.368 | 0.081 | 0.133 |
+
+Observation:  
+TF-IDF performs reasonably well due to frequency bias but struggles with multi-word glossary terms.
+
+EDA figures are available in:
+```
+results/figures/
+```
+
+---
+
+# 6. Phase 2 — Improvements
+
+Phase 2 improves over the baseline using:
+
+## 6.1 Phrase-Level Candidate Extraction
+Instead of ranking individual tokens, we extract bigram and trigram phrases using TF-IDF.
+
+Implementation:
+```
+src/glossex/phrases.py
+```
+
+---
+
+## 6.2 Weak Supervision via Seed Words
+
+Two small seed lists are used:
+
+- `data/seeds/economics.txt`
+- `data/seeds/general.txt`
+
+Each phrase is ranked using:
+
+score = similarity_to_economic_seeds − similarity_to_general_seeds
+
+Implementation:
+```
+src/glossex/rank_phrases.py
+```
+
+---
+
+## 6.3 Hybrid Scoring
+
+To combine frequency and semantics:
+
+Hybrid Score = α · TF-IDF + (1 − α) · Embedding Score
+
+Implementation:
+```
+src/glossex/hybrid_rank.py
+```
+
+Final output:
+```
+demo/outputs/final_terms.csv
+```
+
+---
+
+# 7. Phase 2 Results
+
+Evaluation against the gold glossary:
+
+| K | Model Precision | Model Recall | Model F1 | Baseline F1 |
+|---|------------------|-------------|----------|------------|
+| 50  | 0.060 | 0.030 | 0.040 | 0.027 |
+| 100 | 0.060 | 0.060 | 0.060 | 0.020 |
+| 200 | 0.040 | 0.080 | 0.053 | 0.013 |
+
+Observation:  
+The proposed method consistently improves recall and F1 compared to the TF-IDF baseline, especially at higher K values, indicating improved semantic coverage of domain terminology.
+
+---
+
+# 8. How to Run
+
+## 1. Create Virtual Environment
+
+```
+python -m venv .venv
 .venv\Scripts\activate
+```
 
+## 2. Install Dependencies
 
-Run the pipeline:
-python src/glossex/preprocess.py
-python src/glossex/embeddings.py
-python src/glossex/clustering.py
-python src/glossex/filtering.py
-python scripts/make_demo_outputs.py
+```
+pip install -r requirements.txt
+```
 
+## 3. Run Baseline
 
-Run evaluation:
+```
+python src/baselines/tfidf_baseline.py
+```
 
+## 4. Run Improved Model
+
+```
+python src/glossex/phrases.py
+python src/glossex/rank_phrases.py
+python src/glossex/hybrid_rank.py
+python scripts/make_phrase_outputs.py
+```
+
+## 5. Evaluate
+
+```
 python evaluation/eval_topk.py
+```
 
-📚 Course Information
-Course: Machine Learning
-Instructor: Dr. Pishgar
-Group Members:
-Narges Aliheydari
-Fatemeh Gheisari
-Alireza Farzaneh
+---
+
+# 9. Key Contributions
+
+- Phrase-level glossary extraction
+- Weakly supervised ranking via seed words
+- Hybrid frequency + semantic scoring
+- Multi-K evaluation framework
+- Structured phase-based Git workflow (5 commits per phase)
+
+---
+
+# 10. Limitations & Future Work
+
+- Small corpus limits coverage
+- Exact string matching underestimates performance
+- Phrase embeddings use simple averaging
+
+Future improvements:
+- Larger corpus
+- Contextual phrase embeddings
+- Partial-match evaluation
+- Morphological normalization
+
+---
+
+# 11. Academic Integrity
+
+This project was implemented specifically for the Machine Learning course and follows the required structured phase-based development process.
