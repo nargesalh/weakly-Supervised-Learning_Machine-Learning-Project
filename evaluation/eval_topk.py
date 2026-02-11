@@ -1,72 +1,51 @@
 import csv
-
-K = 50  # top-K terms
-
-
-def normalize(term: str) -> str:
-    term = term.lower().strip()
-    term = term.replace("-", " ")
-    term = term.split()[0]          # فقط head word
-    if term.endswith("s"):
-        term = term[:-1]
-    return term
+import pandas as pd
 
 
-
-def load_terms(path, term_col_candidates=("term", "Term", "token", "text")):
-    with open(path, newline="", encoding="utf-8") as f:
+def load_predictions(path):
+    with open(path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        # اگر DictReader نتونه هدر بخونه، خطا می‌خوره؛ پس مطمئنیم CSV هدر دارد
-        header = reader.fieldnames or []
-
-        # ستون term را پیدا کن
-        term_col = None
-        for c in term_col_candidates:
-            if c in header:
-                term_col = c
-                break
-
-        # اگر پیدا نکرد، از اولین ستون استفاده کن (fallback)
-        if term_col is None:
-            term_col = header[0]
-
-        terms = []
-        for row in reader:
-            val = normalize((row.get(term_col) or ""))
-            if val:
-                terms.append(val)
-        return terms
+        return [row["term"].strip().lower() for row in reader if row.get("term")]
 
 
-def evaluate(predicted, gold):
-    predicted_set = set(predicted)
-    tp = len(predicted_set & gold)
-    precision = tp / len(predicted_set) if predicted_set else 0
-    recall = tp / len(gold) if gold else 0
-    f1 = (2 * precision * recall / (precision + recall)
-          if precision + recall > 0 else 0)
+def load_gold(path):
+    df = pd.read_csv(path)
+    col = df.columns[0]
+    return set(df[col].astype(str).str.strip().str.lower())
+
+
+def evaluate_at_k(preds, gold, k):
+    topk = preds[:k]
+    correct = sum(1 for term in topk if term in gold)
+
+    precision = correct / k if k > 0 else 0
+    recall = correct / len(gold) if len(gold) > 0 else 0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0
+
     return precision, recall, f1
 
 
-gold_path = "data/gold_glossary.csv"
-model_path = "demo/outputs/final_terms.csv"
-baseline_path = "demo/outputs/tfidf_baseline_top_terms.csv"
+def main():
+    model_preds = load_predictions("demo/outputs/final_terms.csv")
+    baseline_preds = load_predictions("demo/outputs/tfidf_baseline_top_terms.csv")
+    gold = load_gold("data/gold_glossary.csv")
 
-gold_terms = set(load_terms(gold_path))
-model_terms = load_terms(model_path)[:K]
-baseline_terms = load_terms(baseline_path)[:K]
+    for k in [50, 100, 200]:
+        print(f"\n=== Evaluation @ {k} ===")
 
-model_p, model_r, model_f1 = evaluate(model_terms, gold_terms)
-base_p, base_r, base_f1 = evaluate(baseline_terms, gold_terms)
+        mp, mr, mf = evaluate_at_k(model_preds, gold, k)
+        bp, br, bf = evaluate_at_k(baseline_preds, gold, k)
 
-print(f"=== Evaluation @ {K} ===\n")
+        print("\nModel:")
+        print(f"Precision: {mp:.3f}")
+        print(f"Recall:    {mr:.3f}")
+        print(f"F1-score:  {mf:.3f}")
 
-print("Model:")
-print(f"Precision: {model_p:.3f}")
-print(f"Recall:    {model_r:.3f}")
-print(f"F1-score:  {model_f1:.3f}\n")
+        print("\nBaseline (TF-IDF):")
+        print(f"Precision: {bp:.3f}")
+        print(f"Recall:    {br:.3f}")
+        print(f"F1-score:  {bf:.3f}")
 
-print("Baseline (TF-IDF):")
-print(f"Precision: {base_p:.3f}")
-print(f"Recall:    {base_r:.3f}")
-print(f"F1-score:  {base_f1:.3f}")
+
+if __name__ == "__main__":
+    main()
