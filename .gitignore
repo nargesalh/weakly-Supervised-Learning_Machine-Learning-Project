@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+*.h5
+*.pkl
+*.bin
+*.safetensors
+/models/
+data/raw/
+data/processed/
+demo/outputs/
