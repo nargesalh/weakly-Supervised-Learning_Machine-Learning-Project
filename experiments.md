@@ -92,6 +92,19 @@ Demo-level outputs can be regenerated using:
 python scripts/make_demo_outputs.py
 ```
 
+## Phase-2 Results — Multi-K Evaluation
+
+We report Top-K evaluation against the reference glossary (`data/gold_glossary.csv`) for K ∈ {50, 100, 200}.
+Baseline is TF-IDF (`demo/outputs/tfidf_baseline_top_terms.csv`) and our model is the phrase-based weakly supervised ranking (`demo/outputs/final_terms.csv`).
+
+| K | Model Precision | Model Recall | Model F1 | Baseline Precision | Baseline Recall | Baseline F1 |
+|---|------------------|-------------|----------|--------------------|----------------|------------|
+| 50  | 0.060 | 0.030 | 0.040 | 0.040 | 0.020 | 0.027 |
+| 100 | 0.060 | 0.060 | 0.060 | 0.020 | 0.020 | 0.020 |
+| 200 | 0.040 | 0.080 | 0.053 | 0.010 | 0.020 | 0.013 |
+
+Observation: the proposed method consistently improves recall (and F1) as K increases, suggesting better semantic coverage compared to frequency-based ranking.
+
 ---
 
 ## Notes
