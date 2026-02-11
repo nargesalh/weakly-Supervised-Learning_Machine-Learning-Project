@@ -1,7 +1,7 @@
 # Weakly Supervised Glossary Extraction for the Economics Domain
 
 ## Course: Machine Learning  
-**Instructor:** Dr. Pishgar  
+**Instructor:** Dr. Pishgoo 
 
 ### Team Members
 - Narges Aliheydari  
