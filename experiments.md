@@ -92,6 +92,19 @@ Demo-level outputs can be regenerated using:
 python scripts/make_demo_outputs.py
 ```
 
+
+## Phase-1 Baseline Results
+
+### TF-IDF Baseline (Top-K Evaluation)
+
+| K | Precision | Recall | F1 |
+|---|-----------|--------|----|
+| 50 | 0.368 | 0.081 | 0.133 |
+
+The TF-IDF baseline extracts high-frequency economic terms.
+Although precision is moderate, recall remains limited due to multi-word glossary terms.
+
+
 ---
 
 ## Notes
